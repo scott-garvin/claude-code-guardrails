@@ -13,7 +13,7 @@ const dir = process.argv[2] ?? "migrations";
 
 let files;
 try {
-  files = readdirSync(dir);
+  files = readdirSync(dir, { withFileTypes: true }).filter(f => f.isFile()).map(f => f.name);
 } catch {
   console.error(`migrations directory not found: ${dir}`);
   process.exit(1);
@@ -22,6 +22,11 @@ try {
 const present = new Set(files);
 const forward = files.filter((f) => f.endsWith(".up.sql"));
 const orphans = forward.filter((f) => !present.has(f.replace(/\.up\.sql$/, ".down.sql")));
+
+if (!forward.length) {
+  console.error("No forward migrations found; refusing a vacuous success.");
+  process.exit(1);
+}
 
 if (orphans.length) {
   console.error("Forward migrations missing a matching .down.sql rollback:\n");
